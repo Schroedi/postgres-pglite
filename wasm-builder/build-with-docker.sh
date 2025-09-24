@@ -35,6 +35,16 @@ fi
 
 mkdir -p dist/pglite dist/extensions-emsdk
 
+EXTRA_VOLUMES=""
+if [ -d "${WORKSPACE}/../timescaledb" ]
+then
+    TS_SRC=$(realpath "${WORKSPACE}/../timescaledb")
+    EXTRA_VOLUMES="$EXTRA_VOLUMES -e TIMESCALEDB_SRC=/opt/src/timescaledb -v ${TS_SRC}:/opt/src/timescaledb:ro"
+    echo "Using timescaledb from ${TS_SRC}"
+else
+    echo "WARNING: timescaledb not found"
+fi
+
 if echo -n $@|grep -q it$
 then
     PROMPT="&& bash ) || bash"
@@ -64,6 +74,7 @@ docker run $@ \
   --workdir=${DOCKER_WORKSPACE} \
   -v ${WORKSPACE}/postgres-pglite:${DOCKER_WORKSPACE}:rw \
   -v ${WORKSPACE}/postgres-pglite/dist:/tmp/sdk/dist:rw \
+  $EXTRA_VOLUMES \
   $MAP_OUT_DIRS \
   $IMG_NAME:$IMG_TAG \
   bash --noprofile --rcfile ./docker_rc.sh -ci "( ./wasm-build.sh ${WHAT:-\"contrib extra\"} $PROMPT"
