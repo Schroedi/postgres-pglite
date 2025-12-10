@@ -10,3 +10,6 @@
 [submodule "pglite/pg_uuidv7"]
 	path = pglite/pg_uuidv7
 	url = https://github.com/fboulnois/pg_uuidv7/
+[submodule "pglite/timescaledb"]
+	path = pglite/timescaledb
+	url = git@github.com:Schroedi/timescaledb.git
