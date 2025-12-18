@@ -92,12 +92,22 @@ postgres: $(OBJS)
 
 # Extensions use functions from the core PG. These need to be exported by the emscripten compiler.
 # The following target gathers all extension imports + the default ones (included.pglite.imports),
-# excludes the one in excluded.pglite.imports and adds a leading _ to each.
+# excludes (invoke_* and __indirect_function_table) (Emscripten runtime trampolines)
+# exlcudes defined excludes, libpq exports, and libossp-uuid exports
+# and adds a leading _ to each.
 pglite-exported-functions:
 	$(MKDIR_P) '$(emscripten_imports_dir)'
+	@# Build the exclusion list from static files
 	cat $(top_builddir)/pglite-wasm/excluded.*.imports $(top_builddir)/src/interfaces/libpq/exports.list $(LIB_EXPORTS_DIR)/libossp-uuid.exports | sort -u > '$(top_builddir)/pglite-wasm/excluded.imports'
+	@# remove pqsignal from the exlusion list, it's in libpq/exports.list but we need it for timescaledb with non ApacheOnly builds
+	sed -i '/pqsignal/d' '$(top_builddir)/pglite-wasm/excluded.imports'
+	@# Generate exported_functions.txt:
+	@# 1. Filter out invoke_* and __indirect_function_table (Emscripten runtime, never export)
+	@# 2. Filter out symbols in excluded.imports (build in previous step)
+	@# 3. Add underscore prefix
 	cat $(DESTDIR)$(emscripten_extension_imports_dir)/*.imports '$(top_builddir)/pglite-wasm/included.pglite.imports' | \
 	sort -u | \
+	grep -v -E '^(invoke_|__indirect_function_table)' | \
 	grep -Fvx -f '$(top_builddir)/pglite-wasm/excluded.imports' | \
 	sed 's/^/_/' \
 	> '$(emscripten_imports_dir)/exported_functions.txt'
